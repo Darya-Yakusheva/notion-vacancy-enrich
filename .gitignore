@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Env & secrets
+.env
+.env.*
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# Local files
+local/**
+
+# Session files
+sessions/
