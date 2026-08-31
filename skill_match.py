@@ -10,11 +10,11 @@ def resolve_skills(names, catalog, by_lower=None):
     :type names: list[str]
     :param catalog: Skill dicts from :func:`notion_read.build_catalog`.
     :type catalog: list[dict]
-    :param by_lower: Optional precomputed ``{name.lower(): skill}`` map.
-      If omitted, built from ``catalog``.
+    :param by_lower: Optional precomputed ``name.lower()`` to skill map; built
+        from ``catalog`` when omitted.
     :type by_lower: dict[str, dict] | None
-    :returns: ``(matched, unknown)`` — catalog dicts and unmatched name strings,
-      both sorted.
+    :returns: Tuple ``(matched, unknown)`` — catalog dicts and unmatched names,
+        both sorted.
     :rtype: tuple[list[dict], list[str]]
     """
     if by_lower is None:
@@ -42,11 +42,12 @@ def resolve_skills(names, catalog, by_lower=None):
 def match_extracted_skills(extracted, catalog):
     """Resolve extracted skill names against the Notion catalog.
 
-    :param extracted: ``{"required": [str, ...], "nice_to_have": [str, ...]}``.
+    :param extracted: Dict with ``required`` and ``nice_to_have`` name lists.
     :type extracted: dict
     :param catalog: Skill dicts from :func:`notion_read.build_catalog`.
     :type catalog: list[dict]
-    :returns: For each group, ``matched`` catalog dicts and ``unknown`` names.
+    :returns: For each group, dict with ``matched`` catalog entries and
+        ``unknown`` names.
     :rtype: dict
     """
     by_lower = {skill["name"].strip().lower(): skill for skill in catalog}

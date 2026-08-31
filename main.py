@@ -20,7 +20,7 @@ from config import (
     NOTION_TOKEN,
     NOTION_VACANCIES_DB_ID,
 )
-from notion_read import build_catalog, get_database_data, parse_vacancy
+from notion_read import build_catalog, fetch_vacancy_page, get_database_data, parse_vacancy
 from skill_extraction import extract_skills_llm, extract_skills_regex
 from skill_match import match_extracted_skills
 
@@ -60,47 +60,35 @@ def load_vacancy(notion, *, index=None, page_id=None):
     :param notion: Authenticated Notion client.
     :type notion: notion_client.Client
     :param index: Index in the Vacancies DB query results (0-based; negative
-      counts from the end, e.g. ``-1`` is the last vacancy).
+        counts from the end, e.g. ``-1`` for the last vacancy).
     :type index: int | None
     :param page_id: Notion page id of a Vacancy row.
     :type page_id: str | None
-    :returns: Parsed vacancy ``{"id", "title", "description"}``.
+    :returns: Dict with keys ``id``, ``title``, ``description``.
     :rtype: dict
-    :raises ValueError: If neither selector is set, index is out of range,
-      or both are set.
+    :raises ValueError: If neither selector is set, both are set, or index is
+        out of range.
     """
-    if (index is None) == (page_id is None):
-        raise ValueError("provide exactly one of index or page_id")
-
-    if page_id:
-        page = notion.pages.retrieve(page_id.strip())
-        return parse_vacancy(page)
-
-    pages = get_database_data(notion, NOTION_VACANCIES_DB_ID)
-    try:
-        page = pages[index]
-    except IndexError as e:
-        raise ValueError(
-            f"index {index} out of range "
-            f"(-{len(pages)}..{len(pages) - 1}, {len(pages)} vacancies)"
-        ) from e
+    page = fetch_vacancy_page(
+        notion, NOTION_VACANCIES_DB_ID, index=index, page_id=page_id
+    )
     return parse_vacancy(page)
 
 
 def run_extraction(method, description, catalog, model=None):
     """Extract skills and match them to the catalog.
 
-    :param method: ``\"regex\"`` or ``\"llm\"``.
+    :param method: Extraction method: ``regex`` or ``llm``.
     :type method: str
     :param description: Vacancy description text.
     :type description: str
     :param catalog: Skill dicts from :func:`notion_read.build_catalog`.
     :type catalog: list[dict]
-    :param model: Gemini model code for ``llm`` (ignored for regex).
+    :param model: Gemini model code for ``llm`` (ignored for ``regex``).
     :type model: str | None
-    :returns: ``{\"method\", \"model\", \"raw\", \"catalog_match\"}``.
+    :returns: Dict with keys ``method``, ``model``, ``raw``, ``catalog_match``.
     :rtype: dict
-    :raises ValueError: If ``method`` is not ``\"regex\"`` or ``\"llm\"``.
+    :raises ValueError: If ``method`` is not ``regex`` or ``llm``.
     """
     if method == "regex":
         raw = extract_skills_regex(description, catalog)
@@ -119,15 +107,15 @@ def run_extraction(method, description, catalog, model=None):
 
 
 def save_compare(out_dir, vacancy, regex_result, llm_result):
-    """Write vacancy text + regex/LLM JSON under ``out_dir``.
+    """Write vacancy text and regex/LLM JSON under ``out_dir``.
 
     :param out_dir: Output directory (created if missing).
     :type out_dir: Path | str
     :param vacancy: Parsed vacancy with ``id``, ``title``, ``description``.
     :type vacancy: dict
-    :param regex_result: Result of :func:`run_extraction` for regex.
+    :param regex_result: Result of :func:`run_extraction` for ``regex``.
     :type regex_result: dict
-    :param llm_result: Result of :func:`run_extraction` for LLM.
+    :param llm_result: Result of :func:`run_extraction` for ``llm``.
     :type llm_result: dict
     :returns: Paths written: vacancy txt, regex json, llm json.
     :rtype: list[Path]
@@ -159,9 +147,9 @@ def print_summary(vacancy, regex_result, llm_result, paths):
 
     :param vacancy: Parsed vacancy (uses ``title``).
     :type vacancy: dict
-    :param regex_result: Result of :func:`run_extraction` for regex.
+    :param regex_result: Result of :func:`run_extraction` for ``regex``.
     :type regex_result: dict
-    :param llm_result: Result of :func:`run_extraction` for LLM.
+    :param llm_result: Result of :func:`run_extraction` for ``llm``.
     :type llm_result: dict
     :param paths: File paths from :func:`save_compare`.
     :type paths: list[Path]

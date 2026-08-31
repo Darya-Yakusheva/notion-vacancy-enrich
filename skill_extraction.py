@@ -80,7 +80,7 @@ def call_gemini_json(prompt, schema, model=None):
     :type prompt: str
     :param schema: Response schema for structured JSON output.
     :type schema: dict
-    :param model: Gemini model code (default: ``GEMINI_MODEL`` env).
+    :param model: Gemini model code (default: ``GEMINI_MODEL`` env var).
     :type model: str | None
     :returns: Parsed JSON object.
     :rtype: dict
@@ -108,16 +108,16 @@ def call_gemini_json(prompt, schema, model=None):
 
 
 def extract_skills_llm(description, model=None):
-    """Extract required and nice-to-have skill names from a vacancy text via LLM.
+    """Extract required and nice-to-have skill names from a vacancy via LLM.
 
     Does not use the Notion catalog. Catalog matching is a separate step
     (:mod:`skill_match`).
 
     :param description: Vacancy description text.
     :type description: str
-    :param model: Gemini model code (default: ``GEMINI_MODEL`` env).
+    :param model: Gemini model code (default: ``GEMINI_MODEL`` env var).
     :type model: str | None
-    :returns: ``{"required": [str, ...], "nice_to_have": [str, ...]}``.
+    :returns: Dict with ``required`` and ``nice_to_have`` lists of skill names.
     :rtype: dict
     :raises ValueError: If ``GEMINI_API_KEY`` is missing.
     :raises RuntimeError: If the Gemini request or JSON parse fails.
@@ -140,7 +140,7 @@ def match_skills_by_regex(description, catalog):
     :type description: str
     :param catalog: Skill dicts from :func:`notion_read.build_catalog`.
     :type catalog: list[dict]
-    :returns: Matching ``{"id", "name"}`` dicts, sorted by name.
+    :returns: Matching skill dicts (keys ``id``, ``name``), sorted by name.
     :rtype: list[dict]
     """
     matches = []
@@ -158,13 +158,13 @@ def extract_skills_regex(description, catalog):
     """Extract skill names from text by matching against the catalog (regex).
 
     Same return shape as :func:`extract_skills_llm`.
-    Regex cannot split required vs nice-to-have: all hits go to ``required``.
+    Regex cannot split required vs nice-to-have: all hits go in ``required``.
 
     :param description: Vacancy description text.
     :type description: str
     :param catalog: Skill dicts from :func:`notion_read.build_catalog`.
     :type catalog: list[dict]
-    :returns: ``{"required": [str, ...], "nice_to_have": []}``.
+    :returns: Dict with ``required`` (skill names) and empty ``nice_to_have``.
     :rtype: dict
     """
     matched = match_skills_by_regex(description, catalog)
