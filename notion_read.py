@@ -1,7 +1,6 @@
 """Read data from Notion (databases, pages, properties)."""
 
-DESCRIPTION_PROPERTY = "Description"
-SKILLS_REQUIRED_PROPERTY = "Skills required"
+from notion_schema import DESCRIPTION_PROPERTY, SKILLS_REQUIRED_PROPERTY
 
 
 def plain_text(rich_text):
@@ -189,9 +188,9 @@ def parse_vacancy(page):
     :raises KeyError: If the ``Description`` property is missing.
     :raises ValueError: If ``Description`` is not ``rich_text``.
     """
-    description = page["properties"]["Description"]
+    description = page["properties"][DESCRIPTION_PROPERTY]
     if description.get("type") != "rich_text":
-        raise ValueError("'Description' is not rich_text")
+        raise ValueError(f"{DESCRIPTION_PROPERTY!r} is not rich_text")
     return {
         "id": page["id"],
         "title": title_of_page(page),

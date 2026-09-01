@@ -1,14 +1,12 @@
 """Write enriched data back to Notion."""
 
-from notion_read import SKILLS_REQUIRED_PROPERTY
-
-SKILLS_NICE_TO_HAVE_PROPERTY = "Skills nice to have"
+from notion_schema import SKILLS_NICE_TO_HAVE_PROPERTY, SKILLS_REQUIRED_PROPERTY
 
 
 def build_relation_payload(page_ids):
     """Build a Notion ``relation`` property value for ``pages.update``.
 
-    Example use with :data:`notion_read.SKILLS_REQUIRED_PROPERTY`::
+    Example use with :data:`notion_schema.SKILLS_REQUIRED_PROPERTY`::
 
         properties={
             SKILLS_REQUIRED_PROPERTY: build_relation_payload(skill_ids),
@@ -29,9 +27,9 @@ def update_vacancy_skills(notion, page_id, *, required_ids, nice_to_have_ids=Non
     :type notion: notion_client.Client
     :param page_id: Notion page id of the Vacancy row.
     :type page_id: str
-    :param required_ids: Skill page ids for :data:`notion_read.SKILLS_REQUIRED_PROPERTY`.
+    :param required_ids: Skill page ids for :data:`notion_schema.SKILLS_REQUIRED_PROPERTY`.
     :type required_ids: list[str]
-    :param nice_to_have_ids: Skill page ids for :data:`SKILLS_NICE_TO_HAVE_PROPERTY`;
+    :param nice_to_have_ids: Skill page ids for :data:`notion_schema.SKILLS_NICE_TO_HAVE_PROPERTY`;
         when ``None``, that property is not updated.
     :type nice_to_have_ids: list[str] | None
     :returns: Updated page dict from the Notion API.
