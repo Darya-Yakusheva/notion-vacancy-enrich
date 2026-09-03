@@ -4,8 +4,6 @@ Python tooling to enrich **Vacancies** rows in Notion using the Notion API and G
 
 Finds vacancies with a filled **Description** and empty **Skills required**, extracts skills (LLM or regex), matches them to the Skills catalog, and writes relations back to Notion.
 
-`main.py` is a separate **dev compare script**: regex vs LLM on one vacancy, with review files under `local/compare/`.
-
 ## Stack
 
 - Notion API (`notion-client`)
@@ -22,7 +20,7 @@ Finds vacancies with a filled **Description** and empty **Skills required**, ext
 | `skill_extraction.py` | Extract skill names from text (LLM or regex) |
 | `skill_match.py` | Match extracted names to catalog (`matched` / `unknown`) |
 | `enrich.py` | Preview and enrich one or all candidate vacancies |
-| `main.py` | Dev compare: regex vs LLM on one vacancy |
+| `main.py` | CLI entrypoint for enrich |
 | `config.py` | Load settings from environment |
 
 ## Setup
@@ -49,65 +47,43 @@ Finds vacancies with a filled **Description** and empty **Skills required**, ext
    - `GEMINI_API_KEY` — Gemini API key (for LLM extraction)
    - `GEMINI_MODEL` — optional; defaults to `gemini-3.5-flash-lite`
 
-   `NOTION_ROLES_DB_ID` is optional and unused for now.
-
 3. Grant the Notion integration access to the Vacancies and Skills databases.
 
-## Enrich pipeline
+## Usage
 
-```
-list candidates  →  extract (regex | LLM)  →  match to catalog  →  write relations
-```
-
-A vacancy qualifies when **Description** has text and **Skills required** is empty.
-
-`enrich_vacancy` skips the write when no required skills matched the catalog. Unknown names (not in the Skills DB) are logged separately for `required` and `nice_to_have`.
-
-Example (from a small script or the Python REPL):
-
-```python
-import logging
-from notion_client import Client
-
-from config import NOTION_SKILLS_DB_ID, NOTION_TOKEN, NOTION_VACANCIES_DB_ID
-from enrich import enrich_all, preview_vacancy_skills
-from notion_read import build_catalog, get_database_data, list_vacancies_to_enrich
-
-logging.basicConfig(level=logging.INFO)
-
-notion = Client(auth=NOTION_TOKEN)
-catalog = build_catalog(get_database_data(notion, NOTION_SKILLS_DB_ID))
-
-# Preview one candidate (no Notion write)
-pages = list_vacancies_to_enrich(notion, NOTION_VACANCIES_DB_ID)
-preview = preview_vacancy_skills(pages[0], catalog)
-
-# Enrich all candidates (writes to Notion)
-results = enrich_all(notion, NOTION_VACANCIES_DB_ID, catalog)
-```
-
-## Compare script (dev)
-
-Pick one vacancy by index or by Notion page id:
+Enrich writes **Skills required** and **Skills nice to have** for vacancies that have a filled Description and empty Skills required (for `--all`).
 
 ```bash
-python main.py --index 0
-python main.py --index -1
+# All candidates
+python main.py --all
+
+# One vacancy by Notion page id
 python main.py --page <notion_page_id>
+
+# One vacancy by index in DB query order (-1 = last)
+python main.py --index -1
+
+# Extract + match only (no Notion write)
+python main.py --page <notion_page_id> --preview
+
+# Use regex instead of LLM
+python main.py --page <notion_page_id> --method regex
+
+# See all available flags
+python main.py --help
 ```
 
-- `--index` — position in the Vacancies database query order (0-based). Negative indices count from the end (`-1` = last).
-- `--page` — stable selector for a specific vacancy row.
+Unknown skill names (found in the text, missing from the Skills catalog) are printed in the terminal, separately for `required` and `nice_to_have`.
 
-Output is written to `local/compare/` (gitignored):
+## Pipeline
 
-- `vacancy.txt` — title, id, and full description
-- `regex.json` — regex extraction + catalog match
-- `llm.json` — LLM extraction + catalog match
+```
+select vacancy(ies)  →  extract (LLM | regex)  →  match to catalog  →  write relations
+```
 
-Regex finds catalog skill names that appear in the text (baseline). LLM splits skills into `required` and `nice_to_have`, then both paths are matched against the Notion Skills catalog.
+`enrich_vacancy` skips the write when no required skills matched the catalog.
 
 ## Status
 
-- Done: Notion read/write, skill extraction and matching, batch enrich, compare CLI
-- Planned: UI to run enrichment without a separate Python script; review screen for skills found in a vacancy but missing from the Skills catalog (add manually or skip)
+- Done: Notion read/write, skill extraction and matching, batch/single enrich CLI
+- Planned: review screen for skills found in a vacancy but missing from the Skills catalog (add manually or skip)
