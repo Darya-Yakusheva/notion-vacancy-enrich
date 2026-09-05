@@ -21,6 +21,7 @@ Finds vacancies with a filled **Description** and empty **Skills required**, ext
 | `skill_match.py` | Match extracted names to catalog (`matched` / `unknown`) |
 | `enrich.py` | Preview and enrich one or all candidate vacancies |
 | `main.py` | CLI entrypoint for enrich |
+| `enrich` | Shell wrapper: runs `main.py` via `.venv` |
 | `config.py` | Load settings from environment |
 
 ## Setup
@@ -58,6 +59,8 @@ Enrich writes **Skills required** and **Skills nice to have** for vacancies that
 ```bash
 # All candidates
 python main.py --all
+# same, without activating the venv:
+./enrich --all
 
 # One vacancy by Notion page id
 python main.py --page <notion_page_id>
@@ -73,6 +76,7 @@ python main.py --page <notion_page_id> --method regex
 
 # See all available flags
 python main.py --help
+# or: ./enrich --help
 ```
 
 Unknown skill names (found in the text, missing from the Skills catalog) are printed in the terminal, separately for `required` and `nice_to_have`.
