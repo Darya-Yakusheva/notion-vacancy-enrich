@@ -46,6 +46,8 @@ Finds vacancies with a filled **Description** and empty **Skills required**, ext
    - `NOTION_SKILLS_DB_ID` — Skills database ID
    - `GEMINI_API_KEY` — Gemini API key (for LLM extraction)
    - `GEMINI_MODEL` — optional; defaults to `gemini-3.5-flash-lite`
+   - `GEMINI_FALLBACK_MODEL` — optional; defaults to `gemini-3.1-flash-lite`
+     (used once on 429/503 from the primary model)
 
 3. Grant the Notion integration access to the Vacancies and Skills databases.
 

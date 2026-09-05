@@ -106,6 +106,14 @@ def main(argv=None):
     """
     args = parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    # Keep enrich logs; silence HTTP clients (Notion/Gemini request spam).
+    for name in ("httpx", "httpcore"):
+        logging.getLogger(name).setLevel(logging.WARNING)
+    logging.getLogger("google_genai").setLevel(logging.ERROR)
+
+    target = "all" if args.all else (f"page={args.page}" if args.page else f"index={args.index}")
+    mode = "preview" if args.preview else "write"
+    print(f"enrich started ({mode}, method={args.method}, {target})")
 
     notion = Client(auth=NOTION_TOKEN)
     catalog = build_catalog(get_database_data(notion, NOTION_SKILLS_DB_ID))

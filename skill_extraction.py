@@ -1,11 +1,19 @@
 """Extract skill names from a vacancy description (LLM or regex)."""
 
 import json
+import logging
 import re
+from typing import Any
 
 from google import genai
+from google.genai import errors as genai_errors
 
-from config import GEMINI_API_KEY, GEMINI_MODEL
+from config import GEMINI_API_KEY, GEMINI_FALLBACK_MODEL, GEMINI_MODEL
+
+logger = logging.getLogger(__name__)
+
+# Retry once with fallback model on these API statuses.
+_RETRYABLE_STATUS_CODES = {429, 503}
 
 SKILLS_RESPONSE_SCHEMA = {
     "type": "OBJECT",
@@ -76,6 +84,9 @@ def build_skills_prompt(description):
 def call_gemini_json(prompt, schema, model=None):
     """Call Gemini and parse a JSON object from the response.
 
+    On ``429`` / ``503`` from the primary model, retries once with
+    :data:`config.GEMINI_FALLBACK_MODEL` when it differs from the primary.
+
     :param prompt: Full prompt text.
     :type prompt: str
     :param schema: Response schema for structured JSON output.
@@ -90,9 +101,14 @@ def call_gemini_json(prompt, schema, model=None):
     if not GEMINI_API_KEY:
         raise ValueError("GEMINI_API_KEY is not set")
 
-    model_id = model or GEMINI_MODEL
+    primary = model or GEMINI_MODEL
+    fallback = GEMINI_FALLBACK_MODEL
+    if fallback == primary:
+        fallback = None
+
     client = genai.Client(api_key=GEMINI_API_KEY)
-    try:
+
+    def _request(model_id):
         response = client.models.generate_content(
             model=model_id,
             contents=prompt,
@@ -103,8 +119,26 @@ def call_gemini_json(prompt, schema, model=None):
             },
         )
         return json.loads(response.text)
-    except Exception as exc:
-        raise RuntimeError(f"Gemini request failed: {exc}") from exc
+
+    try:
+        return _request(primary)
+    except genai_errors.APIError as e:
+        if fallback and e.code in _RETRYABLE_STATUS_CODES:
+            logger.warning(
+                "Gemini %s failed (%s); retrying with %s",
+                primary,
+                e.code,
+                fallback,
+            )
+            try:
+                return _request(fallback)
+            except Exception as e2:
+                raise RuntimeError(
+                    f"Gemini request failed ({fallback}): {e2}"
+                ) from e2
+        raise RuntimeError(f"Gemini request failed ({primary}): {e}") from e
+    except Exception as e:
+        raise RuntimeError(f"Gemini request failed ({primary}): {e}") from e
 
 
 def extract_skills_llm(description, model=None):
